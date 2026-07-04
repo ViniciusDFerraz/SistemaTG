@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard – TG 02 011</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{
+    --verde:#1B3A2D;--verde-m:#2D5C42;--dourado:#B8973A;--dourado-c:#D4AF58;
+    --creme:#F5F0E8;--cinza:#8A8A8A;--branco:#FFFFFF;--preto:#0E0E0E;
+    --fundo:#0d0d0d;--card:#161616;--card2:#1a1a1a;--borda:rgba(184,151,58,0.18);
+    --erro:#c0392b;--ok:#27ae60;--alerta:#e67e22;
+    --fonte-titulo:'Oswald',sans-serif; --fonte-corpo:'DM Sans',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:var(--fonte-corpo);background:var(--fundo);color:var(--creme);min-height:100vh;display:flex;}
+
+  /* ── SIDEBAR ── */
+  #sidebar{
+    width:220px;min-height:100vh;background:#0a0a0a;border-right:1px solid var(--borda);
+    display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:50;
+    transition:transform .3s;
+  }
+  .sb-logo{padding:1.5rem 1.2rem;border-bottom:1px solid var(--borda);}
+  .sb-tg{font-family:var(--fonte-titulo);font-size:1.4rem;font-weight:700;color:var(--branco);}
+  .sb-tg span{color:var(--dourado);}
+  .sb-sub{font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--cinza);margin-top:2px;}
+  .sb-nav{flex:1;padding:1rem 0;}
+  .sb-item{
+    display:flex;align-items:center;gap:0.8rem;padding:0.75rem 1.2rem;
+    font-size:0.82rem;letter-spacing:0.08em;color:var(--cinza);cursor:pointer;
+    border-left:3px solid transparent;transition:all .2s;user-select:none;
+  }
+  .sb-item:hover{color:var(--creme);background:rgba(255,255,255,0.03);}
+  .sb-item.ativo{color:var(--dourado);border-left-color:var(--dourado);background:rgba(184,151,58,0.06);}
+  .sb-item .icone{font-size:1rem;width:20px;text-align:center;}
+  .sb-sep{height:1px;background:var(--borda);margin:0.5rem 1.2rem;}
+  .sb-usuario{padding:1rem 1.2rem;border-top:1px solid var(--borda);}
+  .sb-nome{font-size:0.82rem;color:var(--branco);font-weight:500;}
+  .sb-cargo{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--dourado);margin-top:2px;}
+  .sb-sair{font-size:0.72rem;color:var(--cinza);cursor:pointer;margin-top:0.5rem;text-decoration:underline;}
+  .sb-sair:hover{color:var(--erro);}
+
+  /* ── CONTEÚDO ── */
+  #conteudo{margin-left:220px;flex:1;min-height:100vh;padding:2rem;min-width:0;overflow-x:hidden;}
+
+  /* ── TOPBAR ── */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;}
+  .topbar-titulo{font-family:var(--fonte-titulo);font-size:1.5rem;font-weight:600;color:var(--branco);}
+  .topbar-titulo span{color:var(--dourado);}
+  .btn-upload{
+    display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;
+    background:transparent;border:1px solid var(--borda);color:var(--cinza);
+    font-family:var(--fonte-corpo);font-size:0.78rem;cursor:pointer;transition:all .2s;
+  }
+  .btn-upload:hover{border-color:var(--dourado);color:var(--dourado);}
+
+  /* ── CARDS ── */
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:2rem;}
+  .stat-card{background:var(--card);border:1px solid var(--borda);padding:1.2rem 1.4rem;}
+  .stat-card-label{font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--cinza);margin-bottom:0.5rem;}
+  .stat-card-val{font-family:var(--fonte-titulo);font-size:2.2rem;font-weight:700;color:var(--branco);line-height:1;}
+  .stat-card-val.verde{color:#2ecc71;}
+  .stat-card-val.amarelo{color:var(--alerta);}
+  .stat-card-val.vermelho{color:#e74c3c;}
+  .stat-card-sub{font-size:0.72rem;color:var(--cinza);margin-top:0.4rem;}
+
+  /* ── BARRA FATD ── */
+  .fatd-bloco{background:var(--card);border:1px solid var(--borda);padding:1.5rem;margin-bottom:2rem;}
+  .bloco-titulo{font-family:var(--fonte-titulo);font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--dourado);margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem;}
+  .bloco-titulo::after{content:'';flex:1;height:1px;background:var(--borda);}
+  .fatd-barra-wrap{margin-bottom:0.8rem;}
+  .fatd-barra-label{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--cinza);margin-bottom:0.35rem;}
+  .fatd-barra-label span:last-child{color:var(--branco);font-weight:500;}
+  .fatd-barra-track{height:8px;background:#222;border-radius:0;}
+  .fatd-barra-fill{height:100%;background:var(--dourado);transition:width .6s;}
+  .fatd-barra-fill.vermelho{background:#e74c3c;}
+  .fatd-barra-fill.verde{background:#2ecc71;}
+
+  /* ── GRÁFICO MENSAL ── */
+
+  /* ── PAINEL DE REGISTRO ── */
+  .registro-bloco{background:var(--card);border:1px solid var(--borda);padding:1.5rem;margin-bottom:2rem;}
+  .reg-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;}
+  @media(max-width:900px){.reg-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.reg-grid{grid-template-columns:1fr;}}
+  .campo label{display:block;font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--cinza);margin-bottom:0.35rem;}
+  .campo input,.campo select{
+    width:100%;background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);
+    padding:0.6rem 0.8rem;font-family:var(--fonte-corpo);font-size:0.85rem;outline:none;transition:border-color .2s;
+  }
+  .campo input:focus,.campo select:focus{border-color:var(--dourado);}
+  .campo select option{background:#1a1a1a;}
+  .btn-reg{
+    padding:0.65rem 1.4rem;background:var(--dourado);color:var(--preto);border:none;
+    font-family:var(--fonte-titulo);font-size:0.82rem;font-weight:600;letter-spacing:0.14em;
+    text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap;
+  }
+  .btn-reg:hover{background:var(--dourado-c);}
+  .msg-reg{font-size:0.78rem;margin-top:0.8rem;padding:0.5rem 0.8rem;display:none;}
+  .msg-reg.ok{background:rgba(39,174,96,.1);border-left:3px solid var(--ok);color:#2ecc71;display:block;}
+  .msg-reg.erro{background:rgba(192,57,43,.1);border-left:3px solid var(--erro);color:#e74c3c;display:block;}
+
+  /* ── TABELA ATIRADORES ── */
+  .tabela-bloco{background:var(--card);border:1px solid var(--borda);padding:1.5rem;margin-bottom:2rem;}
+  .tabela-topo{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.2rem;}
+  .busca-input{background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);padding:0.5rem 0.8rem;font-family:var(--fonte-corpo);font-size:0.82rem;outline:none;width:220px;transition:border-color .2s;}
+  .busca-input:focus{border-color:var(--dourado);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-family:var(--fonte-titulo);font-size:0.65rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--cinza);padding:0.6rem 0.8rem;text-align:left;border-bottom:1px solid var(--borda);}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background .15s;}
+  tbody tr:hover{background:rgba(255,255,255,0.025);}
+  tbody td{padding:0.7rem 0.8rem;font-size:0.83rem;color:var(--creme);}
+  .num-col{color:var(--cinza);font-family:var(--fonte-titulo);font-weight:600;}
+  .badge{display:inline-block;padding:0.18rem 0.55rem;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;font-family:var(--fonte-titulo);}
+  .badge.sim{background:rgba(39,174,96,.15);color:#2ecc71;border:1px solid rgba(39,174,96,.3);}
+  .badge.nao{background:rgba(192,57,43,.12);color:#e74c3c;border:1px solid rgba(192,57,43,.3);}
+  .badge.perd{background:rgba(230,126,34,.12);color:var(--alerta);border:1px solid rgba(230,126,34,.3);}
+  .pag{display:flex;gap:0.5rem;margin-top:1.2rem;justify-content:flex-end;flex-wrap:wrap;}
+  .pag-btn{padding:0.3rem 0.65rem;background:transparent;border:1px solid var(--borda);color:var(--cinza);font-family:var(--fonte-titulo);font-size:0.72rem;cursor:pointer;transition:all .2s;}
+  .pag-btn:hover,.pag-btn.ativo{border-color:var(--dourado);color:var(--dourado);}
+
+  /* ── ABAS DE SEÇÃO ── */
+  .secao{display:none;} .secao.ativa{display:block;}
+
+  /* ── CONFIG ── */
+  .config-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;max-width:600px;}
+  
+  .config-card{background:var(--card);border:1px solid var(--borda);padding:1.5rem;}
+  .config-titulo{font-family:var(--fonte-titulo);font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--dourado);margin-bottom:1.2rem;padding-bottom:0.6rem;border-bottom:1px solid var(--borda);}
+  .config-linha{display:flex;align-items:center;justify-content:space-between;padding:0.7rem 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .config-linha:last-child{border-bottom:none;}
+  .config-linha-label{font-size:0.82rem;color:var(--creme);}
+  .config-linha-sub{font-size:0.7rem;color:var(--cinza);margin-top:2px;}
+
+  .cfg-pts-input{width:60px;background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);padding:0.3rem;font-size:0.85rem;outline:none;text-align:center;transition:border-color .2s;}
+  .cfg-pts-input:focus{border-color:var(--dourado);}
+    .btn-cfg{padding:0.55rem 1.1rem;background:transparent;border:1px solid var(--borda);color:var(--cinza);font-family:var(--fonte-corpo);font-size:0.78rem;cursor:pointer;transition:all .2s;}
+  .btn-cfg:hover{border-color:var(--dourado);color:var(--dourado);}
+  .btn-cfg.danger{border-color:rgba(192,57,43,.4);color:var(--erro);}
+  .btn-cfg.danger:hover{background:rgba(192,57,43,.1);}
+
+  /* USUÁRIOS */
+  .usuarios-lista{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;}
+  .usuario-item{display:flex;align-items:center;justify-content:space-between;padding:0.7rem 0.8rem;background:var(--card2);border:1px solid var(--borda);flex-wrap:wrap;gap:0.5rem;}
+  .usuario-nome{font-size:0.85rem;color:var(--branco);font-weight:500;}
+  .usuario-cargo{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--dourado);margin-top:2px;}
+  .usuario-acoes{display:flex;gap:0.5rem;}
+  .btn-mini{padding:0.28rem 0.65rem;font-size:0.68rem;border:1px solid var(--borda);background:transparent;color:var(--cinza);cursor:pointer;transition:all .2s;}
+  .btn-remover{padding:0.22rem 0.55rem;font-size:0.68rem;border:1px solid rgba(192,57,43,.35);background:transparent;color:var(--erro);cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .btn-remover:hover{background:rgba(192,57,43,.1);border-color:var(--erro);}
+  .btn-mini.aprovar{border-color:rgba(39,174,96,.4);color:var(--ok);}
+  .btn-mini.aprovar:hover{background:rgba(39,174,96,.1);}
+  .btn-mini.revogar{border-color:rgba(192,57,43,.4);color:var(--erro);}
+  .btn-mini.revogar:hover{background:rgba(192,57,43,.1);}
+  .badge-pendente{font-size:0.65rem;padding:0.15rem 0.45rem;background:rgba(230,126,34,.12);color:var(--alerta);border:1px solid rgba(230,126,34,.3);}
+  .badge-ativo{font-size:0.65rem;padding:0.15rem 0.45rem;background:rgba(39,174,96,.12);color:#2ecc71;border:1px solid rgba(39,174,96,.3);}
+
+  /* ── GRÁFICO PONTOS TOTAIS ── */
+  .grafico-pts-bloco{background:var(--card);border:1px solid var(--borda);padding:1.2rem 1.5rem;margin-top:1.5rem;}
+  .grafico-pts-wrap{overflow-x:auto;cursor:grab;user-select:none;-webkit-overflow-scrolling:touch;}
+  .grafico-pts-wrap:active{cursor:grabbing;}
+  .grafico-pts-wrap::-webkit-scrollbar{height:4px;}
+  .grafico-pts-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.04);}
+  .grafico-pts-wrap::-webkit-scrollbar-thumb{background:rgba(184,151,58,0.3);}
+  .grafico-pts-inner{display:flex;align-items:flex-end;gap:6px;height:360px;padding:0 4px 0 4px;border-bottom:1px solid rgba(255,255,255,0.08);}
+  .gbar-wrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:36px;position:relative;}
+  .gbar-fill{width:24px;min-height:2px;transition:height .4s cubic-bezier(.4,0,.2,1);position:relative;cursor:pointer;}
+  .gbar-fill.verde  {background:#2ecc71;}
+  .gbar-fill.amarelo{background:var(--dourado);}
+  .gbar-fill.vermelho{background:#e74c3c;}
+  .gbar-fill:hover::after{
+    content:attr(data-pts);position:absolute;bottom:calc(100% + 4px);left:50%;
+    transform:translateX(-50%);background:#222;color:var(--creme);
+    font-size:0.65rem;padding:2px 6px;white-space:nowrap;pointer-events:none;
+    border:1px solid var(--borda);
+  }
+  .gbar-nome{font-size:0.78rem;color:var(--cinza);text-align:center;margin-top:5px;font-family:var(--fonte-titulo);}
+  .grafico-legenda-pts{display:flex;gap:1.5rem;margin-top:0.8rem;flex-wrap:wrap;}
+  .leg-item{display:flex;align-items:center;gap:0.4rem;font-size:0.68rem;color:var(--cinza);}
+  .leg-cor{width:8px;height:8px;flex-shrink:0;}
+
+  /* CORES CUSTOMIZÁVEIS */
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-tg">TG <span>02 011</span></div>
+    <div class="sb-sub">Sistema de Gestão</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-item ativo" onclick="mostrarSecao('dashboard')"><span class="icone">📊</span> Dashboard</div>
+    <div class="sb-item" onclick="mostrarSecao('registro')"><span class="icone">✏️</span> Registrar</div>
+    <div class="sb-item" onclick="mostrarSecao('atiradores')"><span class="icone">👥</span> Atiradores</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" id="item-config" onclick="mostrarSecao('config')" style="display:none"><span class="icone">⚙️</span> Configurações</div>
+  </div>
+  <div class="sb-usuario">
+    <div class="sb-nome" id="sb-nome">—</div>
+    <div class="sb-cargo" id="sb-cargo">—</div>
+    <div class="sb-sair" onclick="sair()">Sair</div>
+  </div>
+</nav>
+
+<!-- CONTEÚDO -->
+<main id="conteudo">
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div id="sec-dashboard" class="secao ativa">
+    <div class="topbar">
+      <div class="topbar-titulo">Visão <span>Geral</span></div>
+      <label class="btn-upload">
+        📂 Importar planilha
+        <input type="file" id="inp-excel" accept=".xlsx,.xls" style="display:none" onchange="importarExcel(this)">
+      </label>
+    </div>
+    <!-- Aviso de importação -->
+    <div id="aviso-importar" style="display:none;background:#1a1a1a;border:1px solid var(--dourado);padding:1.2rem 1.5rem;margin-bottom:1.5rem;max-width:600px;">
+      <div style="font-size:0.85rem;color:var(--creme);margin-bottom:0.8rem;">
+        ⚠️ <strong style="color:var(--dourado)">Atenção:</strong> antes de importar uma nova planilha, exporte seus registros na seção <strong>Registrar</strong> para não perder o trabalho já feito.
+      </div>
+      <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
+        <button class="btn-reg" onclick="confirmarImportacao()">Entendi, importar assim mesmo</button>
+        <button class="btn-cfg" onclick="cancelarImportacao()">Cancelar</button>
+      </div>
+    </div>
+    <div id="msg-importacao" style="display:none;font-size:0.8rem;color:#2ecc71;padding:0.5rem 0;margin-bottom:1rem;"></div>
+    <div class="topbar" style="margin-bottom:2rem">
+    </div>
+
+    <div class="cards-grid" id="cards-stats">
+      <div class="stat-card"><div class="stat-card-label">Total de atiradores</div><div class="stat-card-val" id="st-total">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Com assiduidade</div><div class="stat-card-val verde" id="st-assim">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Desligados</div><div class="stat-card-val vermelho" id="st-desl">—</div></div>
+    </div>
+
+    <div class="fatd-bloco">
+      <div class="bloco-titulo">FATD – Faltas e Taxas</div>
+      <div id="fatd-container">
+        <p style="color:var(--cinza);font-size:0.82rem;">Importe uma planilha Excel para visualizar os dados.</p>
+      </div>
+    </div>
+
+    <!-- GRÁFICO PONTOS TOTAIS -->
+    <div class="grafico-pts-bloco">
+      <div class="bloco-titulo">Pontos totais por atirador</div>
+      <div class="grafico-pts-wrap" id="grafico-pts-wrap">
+        <div class="grafico-pts-inner" id="grafico-pts-inner">
+          <p style="color:var(--cinza);font-size:0.82rem;padding:1rem;">Importe a planilha para ver o gráfico.</p>
+        </div>
+      </div>
+      <div class="grafico-legenda-pts">
+        <div class="leg-item"><div class="leg-cor" style="background:#2ecc71"></div>Sem pontos</div>
+        <div class="leg-item"><div class="leg-cor" style="background:var(--dourado)"></div>Com pontos</div>
+        <div class="leg-item"><div class="leg-cor" style="background:#e74c3c"></div>Risco / Desligado (≥75% do limite)</div>
+      </div>
+    </div>
+</div>
+    </div>
+  </div>
+
+  <!-- ═══ REGISTRO ═══ -->
+  <div id="sec-registro" class="secao">
+    <div class="topbar"><div class="topbar-titulo">Registrar <span>Ocorrência</span></div></div>
+    <div class="registro-bloco">
+      <div class="bloco-titulo">Nova falta ou alteração</div>
+      <div class="reg-grid">
+        <div class="campo">
+          <label>Atirador</label>
+          <select id="reg-atirador"><option value="">Selecione</option></select>
+        </div>
+        <div class="campo">
+          <label>Tipo</label>
+          <select id="reg-tipo">
+            <option value="falta">Falta</option>
+            <option value="falta_justificada">Falta Justificada</option>
+            <option value="atraso">Atraso</option>
+            <option value="atraso_justificado">Atraso Justificado</option>
+            <option value="repreensao">Repreensão</option>
+            <option value="desligamento">Desligar atirador</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Data</label>
+          <input type="date" id="reg-data">
+        </div>
+        <button class="btn-reg" onclick="registrarOcorrencia()">Registrar</button>
+      </div>
+      <div class="campo" style="margin-top:1rem;">
+        <label>Observação (opcional)</label>
+        <input type="text" id="reg-obs" placeholder="Motivo, detalhe...">
+      </div>
+      <div class="msg-reg" id="msg-reg"></div>
+    </div>
+
+    <div class="tabela-bloco">
+      <div class="bloco-titulo">Histórico de registros</div>
+      <table>
+        <thead><tr><th>#</th><th>Atirador</th><th>Tipo</th><th>Data</th><th>Obs</th><th>Por</th></tr></thead>
+        <thead><tr><th>#</th><th>Atirador</th><th>Tipo</th><th>Data</th><th>Obs</th><th>Por</th><th></th></tr></thead>
+        <tbody id="tb-historico"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ ATIRADORES ═══ -->
+  <div id="sec-atiradores" class="secao">
+    <div class="topbar">
+      <div class="topbar-titulo">Lista de <span>Atiradores</span></div>
+      <button class="btn-upload" onclick="exportarExcel()">💾 Exportar Excel</button>
+    </div>
+    <div class="tabela-bloco">
+      <div class="tabela-topo">
+        <input class="busca-input" type="text" placeholder="Buscar atirador..." oninput="filtrarTabela(this.value)">
+        <div style="font-size:0.75rem;color:var(--cinza);" id="count-tabela"></div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>Nome / Guerra</th>
+            <th>Pts Falta</th>
+            <th>Pts Punição</th>
+            <th>Total FATD</th>
+            <th>Assiduidade</th>
+            <th>Honra ao Mérito</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tb-atiradores"></tbody>
+      </table>
+      <div class="pag" id="paginacao"></div>
+    </div>
+  </div>
+
+  <!-- ═══ CONFIGURAÇÕES ═══ -->
+  <div id="sec-config" class="secao">
+    <div class="topbar"><div class="topbar-titulo"><span>Configurações</span></div></div>
+    <div class="config-grid">
+
+      <!-- DADOS -->
+      <div class="config-card">
+        <div class="config-titulo">Dados & Regras</div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Limite de pontos para desligamento (FATD)</div><div class="config-linha-sub">Padrão: 80 pts — falta=2pts, atraso=1pt</div></div>
+          <input type="number" id="cfg-faltas-assim" value="80" min="1" style="width:60px;background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);padding:0.3rem;font-size:0.85rem;outline:none;text-align:center;">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Alerta de risco (%% do limite)</div><div class="config-linha-sub">Aparece em vermelho acima deste % (padrão 75%)</div></div>
+          <input type="number" id="cfg-fatd-max" value="75" min="1" max="100" style="width:60px;background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);padding:0.3rem;font-size:0.85rem;outline:none;text-align:center;">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Código de acesso ao sistema</div><div class="config-linha-sub">Para novos registros</div></div>
+          <input type="text" id="cfg-codigo" value="TG02011" style="width:110px;background:#1a1a1a;border:1px solid var(--borda);color:var(--creme);padding:0.3rem 0.5rem;font-size:0.82rem;outline:none;">
+        </div>
+        <div style="margin-top:1.2rem;">
+          <button class="btn-cfg" onclick="salvarRegras()">Salvar regras</button>
+        </div>
+      </div>
+
+      <!-- PONTOS POR TIPO -->
+      <div class="config-card">
+        <div class="config-titulo">Pontos por tipo de registro</div>
+        <div class="config-linha-sub" style="margin-bottom:1rem;font-size:0.72rem;color:var(--cinza)">
+          Alterações valem apenas para novos registros. Os já aplicados não são alterados.
+        </div>
+
+        <div class="config-linha">
+          <div><div class="config-linha-label">Falta</div></div>
+          <input type="number" id="cfg-pts-falta" value="2" min="0" class="cfg-pts-input">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Falta Justificada</div></div>
+          <input type="number" id="cfg-pts-falta_justificada" value="0" min="0" class="cfg-pts-input">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Atraso</div></div>
+          <input type="number" id="cfg-pts-atraso" value="1" min="0" class="cfg-pts-input">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Atraso Justificado</div></div>
+          <input type="number" id="cfg-pts-atraso_justificado" value="0" min="0" class="cfg-pts-input">
+        </div>
+        <div class="config-linha">
+          <div><div class="config-linha-label">Repreensão</div></div>
+          <input type="number" id="cfg-pts-repreensao" value="5" min="0" class="cfg-pts-input">
+        </div>
+        <div style="margin-top:1.2rem;">
+          <button class="btn-cfg" onclick="salvarPontos()">Salvar pontos</button>
+        </div>
+      </div>
+
+      <!-- USUÁRIOS -->
+      <div class="config-card" style="grid-column:1/-1;">
+        <div class="config-titulo">Usuários do sistema</div>
+        <div class="usuarios-lista" id="lista-usuarios"></div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════
+let atiradores = [];
+let historico  = [];
+let user       = null;
+let cfg        = {};
+let paginaAtual = 1;
+const POR_PAG = 20;
+let filtro = '';
+
+// Estado do gráfico mensal (Faltas & Punições)
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.onload = () => {
+  user = JSON.parse(sessionStorage.getItem('tg_logado'));
+  if (!user) { window.location.href = 'login.html'; return; }
+
+  document.getElementById("sb-nome").textContent  = user.guerra || user.nome;
+  document.getElementById('sb-cargo').textContent = user.cargo;
+
+  if (user.admin) document.getElementById('item-config').style.display = 'flex';
+
+  cfg = JSON.parse(localStorage.getItem('tg_config') || '{}');
+  aplicarConfigInicial();
+
+  atiradores = JSON.parse(localStorage.getItem('tg_atiradores') || '[]');
+  historico  = JSON.parse(localStorage.getItem('tg_historico')  || '[]');
+
+  // data padrão hoje
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('reg-data').value = hoje;
+
+  renderStats();
+  renderFatd();
+  renderGraficoPts();
+  renderTabela();
+  renderSelectAtirador();
+  renderHistorico();
+};
+
+function sair() { sessionStorage.clear(); window.location.href = 'login.html'; }
+
+// ══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════
+function mostrarSecao(id) {
+  document.querySelectorAll('.secao').forEach(s=>s.classList.remove('ativa'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('ativo'));
+  document.getElementById('sec-'+id).classList.add('ativa');
+  event.currentTarget.classList.add('ativo');
+  if (id === 'config') renderUsuarios();
+  if (id === 'dashboard') { /* nada */ }
+}
+
+function aplicarConfigInicial() {
+  const el = (id) => document.getElementById(id);
+  if (cfg.faltasAssid && el('cfg-faltas-assim')) el('cfg-faltas-assim').value = cfg.faltasAssid;
+  if (cfg.fatdMax     && el('cfg-fatd-max'))     el('cfg-fatd-max').value     = cfg.fatdMax;
+  if (cfg.codigoAcesso && el('cfg-codigo'))      el('cfg-codigo').value       = cfg.codigoAcesso;
+  const campos = ['falta','falta_justificada','atraso','atraso_justificado','repreensao'];
+  campos.forEach(k => {
+    const inp = el('cfg-pts-' + k);
+    if (inp) inp.value = getPts(k);
+  });
+  atualizarLabelsTipo();
+}
+
+// ══════════════════════════════════════════════
+// IMPORTAR EXCEL
+// ══════════════════════════════════════════════
+function importarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Aviso: exportar antes de importar nova planilha
+  if (atiradores.length > 0) {
+    const aviso = document.getElementById('aviso-importar');
+    if (aviso) {
+      aviso.style.display = 'block';
+      // Guarda o arquivo para importar após confirmação
+      importarExcel._pendente = input;
+      return;
+    }
+  }
+  _executarImportacao(input);
+}
+
+function confirmarImportacao() {
+  const aviso = document.getElementById('aviso-importar');
+  if (aviso) aviso.style.display = 'none';
+  const inp = importarExcel._pendente;
+  if (inp) { importarExcel._pendente = null; _executarImportacao(inp); }
+}
+
+function cancelarImportacao() {
+  const aviso = document.getElementById('aviso-importar');
+  if (aviso) aviso.style.display = 'none';
+  importarExcel._pendente = null;
+  document.getElementById('inp-excel').value = '';
+}
+
+function _executarImportacao(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+
+      // ── Verifica se é a planilha do TG 02 011 (tem abas DADOS, PTS PERDIDOS, DIPLOMAS)
+      const abas = wb.SheetNames;
+      const ehPlanilhaTG = abas.includes('DADOS') && abas.includes('PTS PERDIDOS') && abas.includes('DIPLOMAS');
+
+      // Detectar planilha exportada pelo próprio site (tem coluna _origem = TG02011)
+      const ws0 = wb.Sheets[wb.SheetNames[0]];
+      const rows0 = XLSX.utils.sheet_to_json(ws0, { header: 1 });
+      const header0 = (rows0[0] || []).map(h => String(h || '').trim());
+      const ehExportadaPeloSite = header0.includes('_origem') ||
+        (rows0[1] && String(rows0[1][0] || '') === 'TG02011');
+
+      if (ehPlanilhaTG) {
+        importarPlanilhaTG(wb);
+      } else if (ehExportadaPeloSite) {
+        importarPlanilhaSite(wb);
+      } else {
+        importarPlanilhaGenerica(wb);
+      }
+
+      salvarAtiradores();
+      atualizarTudo();
+      const msgImp = document.getElementById('msg-importacao');
+      if (msgImp) { msgImp.textContent = `✅ ${atiradores.length} atiradores importados.`; msgImp.style.display='block'; setTimeout(()=>msgImp.style.display='none',4000); }
+    } catch(err) {
+      const msgImpErr = document.getElementById('msg-importacao');
+      if (msgImpErr) { msgImpErr.textContent = '❌ Erro ao importar: ' + err.message; msgImpErr.style.color='#e74c3c'; msgImpErr.style.display='block'; }
+    }
+  };
+  reader.readAsBinaryString(file);
+  input.value = '';
+}
+
+// ──────────────────────────────────────────────────────────────
+// Leitura precisa da planilha "Escala Pontos e Diplomas" do TG
+// ──────────────────────────────────────────────────────────────
+function importarPlanilhaTG(wb) {
+  // ── 1. DADOS: Nº | NOME | GUERRA  (linha 1 = header, dados a partir de linha 2)
+  const wsDados = wb.Sheets['DADOS'];
+  const rowsDados = XLSX.utils.sheet_to_json(wsDados, { header: 1 });
+  // Monta mapa numero → { nome, guerra }
+  const mapaDados = {};
+  for (let i = 1; i < rowsDados.length; i++) {
+    const r = rowsDados[i];
+    if (!r[0] && !r[1]) continue;
+    const num   = parseInt(r[0]) || i;
+    const nome  = String(r[1] || '').trim();
+    const guerra = String(r[2] || '').trim();
+    if (nome) mapaDados[num] = { nome, guerra };
+  }
+
+  // ── 2. PTS PERDIDOS: estrutura em pares de linhas por atirador
+  //    Linha ímpar: Nº | GUERRA | 'FALTA'  | pts_falta | total
+  //    Linha par:   -  |  -     | 'PUNIÇÃO'| pts_punicao | -
+  //    Header real na linha 2 (índice 1), dados a partir da linha 3 (índice 2)
+  const wsPts = wb.Sheets['PTS PERDIDOS'];
+  const rowsPts = XLSX.utils.sheet_to_json(wsPts, { header: 1 });
+
+  // Monta mapaPts usando só números que existem em mapaDados
+  // (evita sobrescrever quando há erro de numeração na aba PTS PERDIDOS)
+  const mapaPts = {};
+  for (let i = 2; i < rowsPts.length; i += 2) {
+    const linhaFalta  = rowsPts[i]     || [];
+    const linhaPun    = rowsPts[i + 1] || [];
+    const num = parseInt(linhaFalta[0]);
+    if (!num) continue;
+    const faltas   = Number(linhaFalta[3])  || 0;
+    const punicoes = Number(linhaPun[3])    || 0;
+    const total    = Number(linhaFalta[4])  || (faltas + punicoes);
+    // Se número já existe no mapa, mantém o de menor total (o correto)
+    // Se não existe ainda, insere normalmente
+    if (!mapaPts[num]) {
+      mapaPts[num] = { faltas, punicoes, total };
+    }
+  }
+
+  // ── 3. DIPLOMAS: lidos em grupos de 2 linhas por atirador, em 2 blocos por linha
+  //    Estrutura: linha ímpar = Honra ao Mérito, linha par = Assiduidade
+  //    Colunas: [_, Nº, NOME, 'Honra Ao Mérito', SIM/NÃO,  Nº, NOME, 'Honra Ao Mérito', SIM/NÃO, ...]
+  //    Blocos por linha: cols 1-4 (1º bloco) e cols 5-8 (2º bloco), podendo ter mais
+  const wsDip = wb.Sheets['DIPLOMAS'];
+  const rowsDip = XLSX.utils.sheet_to_json(wsDip, { header: 1 });
+
+  // Mapa numero → { honra: bool, assiduidade: bool }
+  const mapaDip = {};
+
+  // Cada atirador ocupa 2 linhas. Dados começam na linha 2 (índice 1).
+  // Podem existir até 4 blocos horizontais por par de linhas (pelotões)
+  for (let i = 1; i < rowsDip.length; i += 2) {
+    const linhaHonra  = rowsDip[i]     || [];
+    const linhaAssid  = rowsDip[i + 1] || [];
+    // Blocos de 4 colunas a partir da coluna 1: [num, nome, diploma, situação]
+    for (let col = 1; col < linhaHonra.length; col += 4) {
+      const num = parseInt(linhaHonra[col]);
+      if (!num) continue;
+      const honra      = String(linhaHonra[col + 3] || '').toUpperCase() === 'SIM';
+      const assiduidade = String(linhaAssid[col + 3] || '').toUpperCase() === 'SIM';
+      mapaDip[num] = { honra, assiduidade };
+    }
+  }
+
+  // ── 4. Monta array final de atiradores
+  atiradores = [];
+  for (const [numStr, dadosBase] of Object.entries(mapaDados)) {
+    const num    = parseInt(numStr);
+    const pts    = mapaPts[num]  || { faltas: 0, punicoes: 0, total: 0 };
+    const dip    = mapaDip[num]  || { honra: false, assiduidade: false };
+
+    // ptsPlanilha = pontos de falta já calculados pela planilha (ex: 7 pts)
+    // faltas = número bruto de faltas para exibição na tabela
+    // Calculamos faltas brutas dividindo pts pelo valor padrão de 1 falta (2pts)
+    // mas guardamos ptsPlanilha para usar no cálculo sem multiplicar de novo
+    atiradores.push({
+      numero:      num,
+      nome:        dadosBase.nome,
+      guerra:      dadosBase.guerra,
+      faltas:      pts.faltas,       // quantidade real de faltas (da planilha)
+      atrasos:     0,
+      faltasJust:  0,
+      atrasosJust: 0,
+      repreensoes: pts.punicoes,
+      ptsPlanilha: pts.faltas,       // pontos brutos de falta vindos da planilha
+      daPlanilha:  true,             // flag: estes pontos NÃO devem ser multiplicados
+      totalPts:    pts.total,
+      honra:       dip.honra,
+      assiduidade: dip.assiduidade,
+      desligado:   false,
+    });
+  }
+
+  // Ordena por número
+  atiradores.sort((a, b) => a.numero - b.numero);
+  atiradores.forEach(verificarDesligamento);
+}
+
+// ──────────────────────────────────────────────────────────────
+// Fallback genérico para outras planilhas
+// ──────────────────────────────────────────────────────────────
+function importarPlanilhaSite(wb) {
+  // Lê planilha exportada pelo próprio site — Pts Falta e Pts Punição já são pontos finais
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  const header = (rows[0] || []).map(h => String(h || '').toLowerCase().trim());
+
+  const iNum    = header.findIndex(h => h === 'nº');
+  const iNome   = header.findIndex(h => h === 'nome');
+  const iGuerra = header.findIndex(h => h === 'guerra');
+  const iFaltas = header.findIndex(h => h === 'faltas');
+  const iPtsFalta = header.findIndex(h => h === 'pts falta');
+  const iPtsPun   = header.findIndex(h => h === 'pts punição');
+  const iAssid  = header.findIndex(h => h === 'assiduidade');
+  const iHonra  = header.findIndex(h => h === 'honra ao mérito');
+  const iStat   = header.findIndex(h => h === 'status');
+
+  atiradores = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const nome = String(row[iNome >= 0 ? iNome : 1] || '').trim();
+    if (!nome) continue;
+
+    const numero    = parseInt(row[iNum    >= 0 ? iNum    : 0]) || r;
+    const guerra    = String(row[iGuerra  >= 0 ? iGuerra : iNome] || nome).trim();
+    const faltas    = parseInt(row[iFaltas  >= 0 ? iFaltas  : -1]) || 0;
+    const ptsFalta  = parseInt(row[iPtsFalta >= 0 ? iPtsFalta : -1]) || 0;
+    const ptsPun    = parseInt(row[iPtsPun   >= 0 ? iPtsPun   : -1]) || 0;
+    const assid     = String(row[iAssid   >= 0 ? iAssid   : -1] || '').toUpperCase() === 'SIM';
+    const honra     = String(row[iHonra   >= 0 ? iHonra   : -1] || '').toUpperCase() === 'SIM';
+    const stat      = String(row[iStat    >= 0 ? iStat    : -1] || '').toLowerCase();
+
+    atiradores.push({
+      numero,
+      nome,
+      guerra,
+      faltas,
+      atrasos:     0,
+      faltasJust:  0,
+      atrasosJust: 0,
+      repreensoes: ptsPun,
+      ptsPlanilha: ptsFalta,  // pontos já calculados — não multiplica de novo
+      daPlanilha:  true,
+      assiduidade: assid,
+      honra:       honra,
+      desligado:   stat.includes('desl') || stat.includes('elim'),
+    });
+  }
+}
+
+function importarPlanilhaGenerica(wb) {
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  const header = (rows[0] || []).map(h => String(h || '').toLowerCase().trim());
+  const iNome  = header.findIndex(h => h.includes('nome'));
+  const iNum   = header.findIndex(h => h === 'nº' || h === 'nr' || h === 'n' || h.includes('num'));
+  const iFalta = header.findIndex(h => h.includes('falta'));
+  const iRep   = header.findIndex(h => h.includes('repre') || h.includes('puni'));
+  const iStat  = header.findIndex(h => h.includes('status') || h.includes('desl'));
+
+  atiradores = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row   = rows[r];
+    const nome  = String(row[iNome >= 0 ? iNome : 1] || '').trim();
+    if (!nome) continue;
+    const numero    = parseInt(row[iNum >= 0 ? iNum : 0]) || r;
+    const faltas    = parseInt(row[iFalta >= 0 ? iFalta : -1]) || 0;
+    const punicoes  = parseInt(row[iRep   >= 0 ? iRep   : -1]) || 0;
+    const stat      = String(row[iStat  >= 0 ? iStat  : -1] || '').toLowerCase();
+    atiradores.push({
+      numero, nome, guerra: nome, faltas,
+      repreensoes: punicoes, totalPts: faltas + punicoes,
+      honra: faltas === 0 && punicoes === 0,
+      assiduidade: faltas === 0,
+      desligado: stat.includes('desl') || stat.includes('elim'),
+    });
+  }
+}
+
+// ══════════════════════════════════════════════
+// EXPORTAR EXCEL
+// ══════════════════════════════════════════════
+function exportarExcel() {
+  const dados = atiradores.map(a => ({
+    '_origem': 'TG02011',          // identifica planilha exportada pelo site
+    'Nº': a.numero,
+    'Nome': a.nome,
+    'Guerra': a.guerra || '',
+    'Faltas': a.faltas,
+    'Pts Falta': calcPtsFalta(a),
+    'Pts Punição': a.repreensoes,
+    'Total FATD': calcPtsTotal(a),
+    'Assiduidade': calcAssid(a) ? 'SIM' : 'NÃO',
+    'Honra ao Mérito': calcHonra(a) ? 'SIM' : 'NÃO',
+    'Status': a.desligado ? 'Desligado' : 'Ativo'
+  }));
+  const ws = XLSX.utils.json_to_sheet(dados);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Atiradores');
+  // Histórico
+  if (historico.length) {
+    const wh = XLSX.utils.json_to_sheet(historico.map(h=>({
+      'Atirador': h.nome, 'Tipo': h.tipo, 'Data': h.data, 'Obs': h.obs, 'Por': h.por
+    })));
+    XLSX.utils.book_append_sheet(wb, wh, 'Histórico');
+  }
+  XLSX.writeFile(wb, 'TG02011_atiradores.xlsx');
+}
+
+// ══════════════════════════════════════════════
+// REGRAS
+// ══════════════════════════════════════════════
+function getFatdMax() { return parseInt(cfg.fatdMax || 80); }
+
+// Retorna pontos configurados para cada tipo (sem alterar registros já feitos)
+function getPts(tipo) {
+  const defaults = {
+    falta: 2, falta_justificada: 0,
+    atraso: 1, atraso_justificado: 0,
+    repreensao: 5, desligamento: 0,
+  };
+  return cfg.pts && cfg.pts[tipo] !== undefined ? cfg.pts[tipo] : (defaults[tipo] ?? 0);
+}
+
+function salvarPontos() {
+  cfg.pts = {
+    falta:             parseInt(document.getElementById('cfg-pts-falta').value)             || 0,
+    falta_justificada: parseInt(document.getElementById('cfg-pts-falta_justificada').value) || 0,
+    atraso:            parseInt(document.getElementById('cfg-pts-atraso').value)            || 0,
+    atraso_justificado:parseInt(document.getElementById('cfg-pts-atraso_justificado').value)|| 0,
+    repreensao:        parseInt(document.getElementById('cfg-pts-repreensao').value)        || 0,
+  };
+  localStorage.setItem('tg_config', JSON.stringify(cfg));
+  // Atualiza o preview do select de registro com os novos valores
+  atualizarLabelsTipo();
+  const btnSalvar = document.querySelector('[onclick="salvarPontos()"]');
+  if (btnSalvar) { const t = btnSalvar.textContent; btnSalvar.textContent = '✓ Salvo!'; btnSalvar.style.color='#2ecc71'; setTimeout(()=>{ btnSalvar.textContent=t; btnSalvar.style.color=''; }, 2000); }
+}
+
+function atualizarLabelsTipo() {
+  const sel = document.getElementById('reg-tipo');
+  if (!sel) return;
+  const labels = {
+    falta:              `Falta (+${getPts('falta')} pts)`,
+    falta_justificada:  `Falta Justificada (+${getPts('falta_justificada')} pts)`,
+    atraso:             `Atraso (+${getPts('atraso')} pt)`,
+    atraso_justificado: `Atraso Justificado (+${getPts('atraso_justificado')} pt)`,
+    repreensao:         `Repreensão (+${getPts('repreensao')} pts)`,
+    desligamento:       'Desligar atirador',
+  };
+  Array.from(sel.options).forEach(opt => {
+    if (labels[opt.value]) opt.text = labels[opt.value];
+  });
+}
+
+// REGRAS:
+// • Pontos de falta: cada falta = 2 pts, cada atraso = 1 pt
+// • Assiduidade: perde se pontos de falta > 0 (qualquer falta ou atraso)
+// • Honra ao Mérito: perde se total de pontos (falta + punição) >= 80 → desligamento automático
+// • FATD: total de pontos acumulados (falta + punição), limite configurável (padrão 80)
+
+function calcPtsFalta(a) {
+  if (a.daPlanilha) {
+    // Pontos já calculados pela planilha — usa direto + registros manuais feitos no site
+    const base = a.ptsPlanilha || 0;
+    const manual = (a.atrasos     || 0) * getPts('atraso')
+                 + (a.faltasJust  || 0) * getPts('falta_justificada')
+                 + (a.atrasosJust || 0) * getPts('atraso_justificado');
+    // Faltas adicionadas manualmente após importação
+    const faltasExtras = ((a.faltas || 0) - (a.ptsPlanilha || 0)) > 0
+      ? ((a.faltas || 0) - (a.ptsPlanilha || 0)) * getPts('falta')
+      : 0;
+    return base + manual;
+  }
+  // Atirador criado manualmente — multiplica normalmente
+  return (a.faltas      || 0) * getPts('falta')
+       + (a.atrasos     || 0) * getPts('atraso')
+       + (a.faltasJust  || 0) * getPts('falta_justificada')
+       + (a.atrasosJust || 0) * getPts('atraso_justificado');
+}
+function calcPtsTotal(a)  { return calcPtsFalta(a) + (a.repreensoes || 0); }
+
+function calcAssid(a) {
+  // Perde assiduidade se qualquer tipo de falta ou atraso tiver pontos
+  return !a.desligado && calcPtsFalta(a) === 0;
+}
+
+function calcHonra(a) {
+  // Perde Honra ao Mérito (= é desligado) se atingir 80 pontos totais
+  return !a.desligado && calcPtsTotal(a) < getFatdMax();
+}
+
+function verificarDesligamento(a) {
+  // Desligamento automático ao atingir 80 pts
+  if (!a.desligado && calcPtsTotal(a) >= getFatdMax()) {
+    a.desligado = true;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ATUALIZAR TUDO
+// ══════════════════════════════════════════════
+function atualizarTudo() {
+  renderStats();
+  renderFatd();
+  renderGraficoPts();
+  renderTabela();
+  renderSelectAtirador();
+  renderHistorico();
+}
+
+function renderGraficoPts() {
+  const cont = document.getElementById('grafico-pts-inner');
+  if (!cont) return;
+  if (!atiradores.length) {
+    cont.innerHTML = '<p style="color:var(--cinza);font-size:0.82rem;padding:1rem;">Importe a planilha para ver o gráfico.</p>';
+    initGraficoScroll();
+    return;
+  }
+  const limite = getFatdMax();
+  const risco  = limite * 0.75;
+  const altura = 340;
+  const lista  = [...atiradores].sort((a,b) => calcPtsTotal(b) - calcPtsTotal(a));
+  const maxTick = Math.ceil(Math.max(...lista.map(a => calcPtsTotal(a)), 10) / 10) * 10;
+
+  cont.innerHTML = lista.map(a => {
+    const pts = calcPtsTotal(a);
+    const h   = pts > 0 ? Math.max(2, Math.round((pts / maxTick) * altura)) : 2;
+    const num = String(a.numero).padStart(2,'0');
+    const cor = pts === 0 ? 'verde' : pts >= risco ? 'vermelho' : 'amarelo';
+    const tip = `${a.guerra || a.nome.split(' ')[0]}: ${pts} pts`;
+    return `<div class="gbar-wrap">
+      <div class="gbar-fill ${cor}" style="height:${h}px" data-pts="${tip}"></div>
+      <div class="gbar-nome">${num}</div>
+    </div>`;
+  }).join('');
+
+  initGraficoScroll();
+}
+
+function initGraficoScroll() {
+  const wrap = document.getElementById('grafico-pts-wrap');
+  if (!wrap || wrap._scrollInit) return;
+  wrap._scrollInit = true;
+  let isDown = false, startX, scrollLeft;
+  wrap.addEventListener('mousedown',  e => { isDown=true; startX=e.pageX-wrap.offsetLeft; scrollLeft=wrap.scrollLeft; wrap.style.cursor='grabbing'; });
+  wrap.addEventListener('mouseleave', () => { isDown=false; wrap.style.cursor='grab'; });
+  wrap.addEventListener('mouseup',    () => { isDown=false; wrap.style.cursor='grab'; });
+  wrap.addEventListener('mousemove',  e => { if(!isDown) return; e.preventDefault(); wrap.scrollLeft = scrollLeft-(e.pageX-wrap.offsetLeft-startX); });
+}
+
+function renderStats() {
+  const total   = atiradores.length;
+  const assim   = atiradores.filter(calcAssid).length;
+  const desl    = atiradores.filter(a=>a.desligado).length;
+  document.getElementById('st-total').textContent  = total   || '—';
+  document.getElementById('st-assim').textContent  = assim   || '—';
+  document.getElementById('st-desl').textContent   = desl    || '—';
+}
+
+function renderFatd() {
+  const cont = document.getElementById('fatd-container');
+  if (!atiradores.length) {
+    cont.innerHTML='<p style="color:var(--cinza);font-size:0.82rem;">Importe uma planilha para visualizar os dados.</p>';
+    return;
+  }
+  const total    = atiradores.length;
+  const ativos   = atiradores.filter(a=>!a.desligado);
+  const maxFatd  = getFatdMax(); // padrão 80 pts
+  const showPct  = cfg.showPct !== false;
+
+
+
+  // Atiradores em risco (>= 60 pts → 75% do limite)
+  const emRisco          = ativos.filter(a => calcPtsTotal(a) >= maxFatd * 0.75).length;
+  const pctRisco         = ativos.length ? ((emRisco / ativos.length) * 100).toFixed(1) : 0;
+
+  const comAssid         = ativos.filter(calcAssid).length;
+  const pctAssid         = ativos.length ? ((comAssid / ativos.length) * 100).toFixed(1) : 0;
+
+
+  const desligados       = atiradores.filter(a=>a.desligado).length;
+  const pctDesl          = total ? ((desligados / total) * 100).toFixed(1) : 0;
+
+  function barra(label, valor, pct, cor, detalhe) {
+    return `
+      <div class="fatd-barra-wrap">
+        <div class="fatd-barra-label">
+          <span>${label}</span>
+          <span style="display:flex;gap:1rem;align-items:center">
+            ${detalhe ? `<span style="color:var(--cinza);font-size:0.7rem">${detalhe}</span>` : ''}
+            ${showPct ? `<span>${pct}%</span>` : ''}
+          </span>
+        </div>
+        <div class="fatd-barra-track">
+          <div class="fatd-barra-fill ${cor}" style="width:${Math.min(pct,100)}%"></div>
+        </div>
+      </div>`;
+  }
+
+  cont.innerHTML =
+    barra('Em risco de desligamento',
+          emRisco, pctRisco, emRisco > 0 ? 'vermelho' : 'verde',
+          `${emRisco} atirador${emRisco!==1?'es':''}`) +
+    barra('Com assiduidade',
+          comAssid, pctAssid, 'verde',
+          `${comAssid} de ${ativos.length}`) +
+    barra('Desligados',
+          desligados, pctDesl, 'vermelho',
+          `${desligados} de ${total}`);
+}
+
+function renderTabela() {
+  const lista = atiradores.filter(a =>
+    !filtro || a.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+    String(a.numero).includes(filtro)
+  );
+  const total = lista.length;
+  const pages = Math.ceil(total / POR_PAG);
+  if (paginaAtual > pages && pages > 0) paginaAtual = pages;
+  const slice = lista.slice((paginaAtual-1)*POR_PAG, paginaAtual*POR_PAG);
+  const showNum = cfg.showNum !== false;
+
+  document.getElementById('count-tabela').textContent = `${total} atirador${total!==1?'es':''}`;
+  const tbody = document.getElementById('tb-atiradores');
+  tbody.innerHTML = slice.map(a => {
+    const assim = calcAssid(a);
+    const honra = calcHonra(a);
+    const stat  = a.desligado ? '<span class="badge nao">Desligado</span>' : '<span class="badge sim">Ativo</span>';
+    const assB  = assim ? '<span class="badge sim">Sim</span>' : '<span class="badge nao">Não</span>';
+    const honB  = a.desligado ? '<span class="badge perd">Perdida</span>' : (honra ? '<span class="badge sim">Sim</span>' : '<span class="badge nao">Não</span>');
+    const nomeExib = a.guerra && a.guerra !== a.nome ? `${a.nome} <span style="color:var(--dourado);font-size:0.78rem">(${a.guerra})</span>` : a.nome;
+    return `<tr>
+      <td class="num-col">${showNum ? String(a.numero).padStart(2,'0') : '—'}</td>
+      <td>${nomeExib}</td>
+      <td style="color:${calcPtsFalta(a)>0?'#e74c3c':'var(--cinza)'}">${calcPtsFalta(a)} pts <span style="font-size:0.7rem;color:var(--cinza)">(${a.faltas}f)</span></td>
+      <td style="color:${a.repreensoes>0?'var(--alerta)':'var(--cinza)'}">${a.repreensoes}</td>
+      <td style="color:${calcPtsTotal(a)>=getFatdMax()*0.75?'#e74c3c':calcPtsTotal(a)>0?'var(--alerta)':'var(--cinza)'};font-weight:600">${calcPtsTotal(a)}</td>
+      <td>${assB}</td><td>${honB}</td><td>${stat}</td>
+    </tr>`;
+  }).join('');
+
+  // Paginação
+  const pag = document.getElementById('paginacao');
+  pag.innerHTML = '';
+  for (let i = 1; i <= pages; i++) {
+    const b = document.createElement('button');
+    b.className = 'pag-btn' + (i===paginaAtual?' ativo':'');
+    b.textContent = i;
+    b.onclick = () => { paginaAtual=i; renderTabela(); };
+    pag.appendChild(b);
+  }
+}
+
+function filtrarTabela(val) { filtro=val; paginaAtual=1; renderTabela(); }
+
+function renderSelectAtirador() {
+  const sel = document.getElementById('reg-atirador');
+  sel.innerHTML = '<option value="">Selecione</option>' +
+    atiradores.map(a=>`<option value="${a.numero}">${String(a.numero).padStart(2,'0')} – ${a.nome}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// REGISTRAR OCORRÊNCIA
+// ══════════════════════════════════════════════
+function registrarOcorrencia() {
+  const numStr = document.getElementById('reg-atirador').value;
+  const tipo   = document.getElementById('reg-tipo').value;
+  const data   = document.getElementById('reg-data').value;
+  const obs    = document.getElementById('reg-obs').value.trim();
+  const msgEl  = document.getElementById('msg-reg');
+
+  if (!numStr) { msgEl.textContent='Selecione um atirador.'; msgEl.className='msg-reg erro'; return; }
+  if (!tipo)   { msgEl.textContent='Selecione o tipo.';      msgEl.className='msg-reg erro'; return; }
+
+  const idx = atiradores.findIndex(a => String(a.numero) === String(numStr));
+  if (idx < 0) { msgEl.textContent='Atirador não encontrado.'; msgEl.className='msg-reg erro'; return; }
+  const a = atiradores[idx];
+
+  const pts = getPts(tipo);
+
+  if (tipo === 'falta')               { a.faltas++; if (a.daPlanilha) a.ptsPlanilha = (a.ptsPlanilha || 0) + getPts('falta'); }
+  else if (tipo === 'atraso')         { a.atrasos = (a.atrasos || 0) + 1; }
+  else if (tipo === 'atraso_justificado') { a.atrasosJust = (a.atrasosJust || 0) + 1; }
+  else if (tipo === 'falta_justificada')  { a.faltasJust  = (a.faltasJust  || 0) + 1; }
+  else if (tipo === 'repreensao')     { a.repreensoes = (a.repreensoes || 0) + pts; }
+  else if (tipo === 'desligamento')   { a.desligado = true; }
+
+  verificarDesligamento(a);
+
+  historico.push({ numero: parseInt(a.numero), nome: a.nome, tipo, data, obs, por: user.guerra || user.nome, pts });
+  salvarAtiradores();
+  atualizarTudo();
+
+  const label = labelTipo(tipo);
+  msgEl.textContent = `${label} registrado para ${a.guerra || a.nome}.${pts > 0 ? ` +${pts} pts` : ''} | Total: ${calcPtsTotal(a)} pts${a.desligado ? ' — DESLIGADO' : ''}.`;
+  msgEl.className = 'msg-reg ok';
+  setTimeout(() => msgEl.className = 'msg-reg', 4000);
+  document.getElementById('reg-obs').value = '';
+}
+
+function labelTipo(tipo) {
+  const map = {
+    falta:'Falta', falta_justificada:'Falta Justificada',
+    atraso:'Atraso', atraso_justificado:'Atraso Justificado',
+    repreensao:'Repreensão', desligamento:'Desligamento'
+  };
+  return map[tipo] || tipo;
+}
+
+function badgeTipo(tipo) {
+  const negativo = ['falta','desligamento','repreensao'];
+  return `<span class="badge ${negativo.includes(tipo)?'nao':'perd'}">${labelTipo(tipo)}</span>`;
+}
+
+function renderHistorico() {
+  const tbody = document.getElementById('tb-historico');
+  // Inverte para mostrar mais recente primeiro, mantendo índice real no array
+  const invertido = historico.map((h, realIdx) => ({ ...h, realIdx })).reverse().slice(0, 100);
+  tbody.innerHTML = invertido.map((h, i) => `
+    <tr>
+      <td class="num-col">${historico.length - i}</td>
+      <td>${h.nome}</td>
+      <td>${badgeTipo(h.tipo)}</td>
+      <td>${h.data}</td>
+      <td style="color:var(--cinza)">${h.obs||'—'}</td>
+      <td style="color:var(--cinza)">${h.por}</td>
+      <td><button class="btn-remover" onclick="removerRegistro(${h.realIdx})">✕ Remover</button></td>
+    </tr>`).join('');
+}
+
+function removerRegistro(idx) {
+  const h = historico[idx];
+  if (!h) return;
+  // Encontrar o atirador e estornar os pontos
+  const a = atiradores.find(x => x.numero === h.numero);
+  if (a) {
+    const tipo = h.tipo;
+    if (tipo === 'falta')              { a.faltas = Math.max(0, (a.faltas || 0) - 1); }
+    else if (tipo === 'atraso')        { a.atrasos = Math.max(0, (a.atrasos || 0) - 1); }
+    else if (tipo === 'atraso_justificado') { a.atrasosJust = Math.max(0, (a.atrasosJust || 0) - 1); }
+    else if (tipo === 'falta_justificada')  { a.faltasJust = Math.max(0, (a.faltasJust || 0) - 1); }
+    else if (tipo === 'repreensao')    {
+      const pts = h.pts || getPts('repreensao');
+      a.repreensoes = Math.max(0, (a.repreensoes || 0) - pts);
+    }
+    else if (tipo === 'desligamento')  {
+      // Reativa o atirador — verifica se ainda merece estar desligado pelo FATD
+      a.desligado = false;
+      verificarDesligamento(a);
+    }
+    // Re-verifica desligamento após estorno
+    if (tipo !== 'desligamento') {
+      a.desligado = false;
+      verificarDesligamento(a);
+    }
+  }
+
+  historico.splice(idx, 1);
+  salvarAtiradores();
+  atualizarTudo();
+}
+
+// ══════════════════════════════════════════════
+// PERSISTÊNCIA
+// ══════════════════════════════════════════════
+function salvarAtiradores() {
+  localStorage.setItem('tg_atiradores', JSON.stringify(atiradores));
+  localStorage.setItem('tg_historico',  JSON.stringify(historico));
+}
+
+</script>
+</body>
+</html>
