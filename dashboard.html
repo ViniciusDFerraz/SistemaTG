@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="icone.png">
 <title>Dashboard – TG 02 011</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -183,13 +182,89 @@
   .leg-item{display:flex;align-items:center;gap:0.4rem;font-size:0.68rem;color:var(--cinza);}
   .leg-cor{width:8px;height:8px;flex-shrink:0;}
 
+  /* ── AVISO DE BACKUP ── */
+  #aviso-backup{
+    position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;
+    background:#1a1a1a;border:1px solid var(--dourado);
+    padding:1rem 1.2rem;max-width:320px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.5);
+    display:none;
+  }
+  #aviso-backup p{font-size:0.82rem;color:var(--creme);line-height:1.6;margin-bottom:0.8rem;}
+  #aviso-backup strong{color:var(--dourado);}
+  #aviso-backup .backup-btns{display:flex;gap:0.6rem;}
+
   /* CORES CUSTOMIZÁVEIS */
 
+
+  /* ── MOBILE ── */
+  #menu-toggle{
+    display:none;position:fixed;top:1rem;left:1rem;z-index:200;
+    width:40px;height:40px;background:var(--card);border:1px solid var(--borda);
+    color:var(--dourado);font-size:1.2rem;cursor:pointer;
+    align-items:center;justify-content:center;
+  }
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:49;
+  }
+
+  @media(max-width:768px){
+    #menu-toggle{display:flex;}
+
+    #sidebar{
+      transform:translateX(-100%);
+      transition:transform .3s;
+      z-index:50;
+    }
+    #sidebar.aberto{transform:translateX(0);}
+
+    .sidebar-overlay.visivel{display:block;}
+
+    #conteudo{
+      margin-left:0;
+      padding:1rem;
+      padding-top:4rem;
+    }
+
+    .cards-grid{grid-template-columns:1fr 1fr;}
+
+    .topbar{flex-direction:column;align-items:flex-start;gap:0.8rem;}
+
+    .reg-grid{grid-template-columns:1fr!important;}
+
+    .tabela-topo{flex-direction:column;align-items:stretch;}
+    .busca-input{width:100%;}
+
+    table{font-size:0.75rem;}
+    thead th{padding:0.4rem 0.5rem;}
+    tbody td{padding:0.5rem 0.5rem;}
+
+    /* Esconder colunas menos importantes no mobile */
+    table th:nth-child(4),
+    table td:nth-child(4),
+    table th:nth-child(6),
+    table td:nth-child(6){ display:none; }
+
+    .config-grid{grid-template-columns:1fr;}
+
+    #aviso-backup{
+      left:1rem;right:1rem;bottom:1rem;max-width:none;
+    }
+
+    .fatd-bloco{padding:1rem;}
+    .grafico-pts-bloco{padding:1rem;}
+  }
+
+  @media(max-width:400px){
+    .cards-grid{grid-template-columns:1fr;}
+  }
 </style>
 </head>
 <body>
 
 <!-- SIDEBAR -->
+<button id="menu-toggle" onclick="toggleMenu()">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="fecharMenu()"></div>
 <nav id="sidebar">
   <div class="sb-logo">
     <div class="sb-tg">TG <span>02 011</span></div>
@@ -408,6 +483,15 @@
 
 </main>
 
+<!-- AVISO DE BACKUP -->
+<div id="aviso-backup">
+  <p>⚠️ <strong>Lembrete de backup</strong><br>Você fez <span id="backup-count"></span> registros sem exportar. Exporte agora para não perder seu trabalho.</p>
+  <div class="backup-btns">
+    <button class="btn-reg" style="flex:1;padding:0.5rem" onclick="exportarExcel();fecharBackup()">Exportar agora</button>
+    <button class="btn-cfg" style="padding:0.5rem 0.8rem" onclick="fecharBackup()">Depois</button>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // ESTADO GLOBAL
@@ -450,6 +534,7 @@ window.onload = () => {
   renderTabela();
   renderSelectAtirador();
   renderHistorico();
+  verificarAvisoBackup();
 };
 
 function sair() { sessionStorage.clear(); window.location.href = 'index.html'; }
@@ -457,7 +542,17 @@ function sair() { sessionStorage.clear(); window.location.href = 'index.html'; }
 // ══════════════════════════════════════════════
 // NAVEGAÇÃO
 // ══════════════════════════════════════════════
+function toggleMenu() {
+  document.getElementById('sidebar').classList.toggle('aberto');
+  document.getElementById('sidebar-overlay').classList.toggle('visivel');
+}
+function fecharMenu() {
+  document.getElementById('sidebar').classList.remove('aberto');
+  document.getElementById('sidebar-overlay').classList.remove('visivel');
+}
+
 function mostrarSecao(id) {
+  fecharMenu();
   document.querySelectorAll('.secao').forEach(s=>s.classList.remove('ativa'));
   document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('ativo'));
   document.getElementById('sec-'+id).classList.add('ativa');
@@ -764,6 +859,7 @@ function exportarExcel() {
     XLSX.utils.book_append_sheet(wb, wh, 'Histórico');
   }
   XLSX.writeFile(wb, 'TG02011_atiradores.xlsx');
+  localStorage.setItem('tg_registros_sem_export', '0');
 }
 
 // ══════════════════════════════════════════════
@@ -1126,6 +1222,27 @@ function removerRegistro(idx) {
 function salvarAtiradores() {
   localStorage.setItem('tg_atiradores', JSON.stringify(atiradores));
   localStorage.setItem('tg_historico',  JSON.stringify(historico));
+  // Incrementa contador de registros sem exportar
+  const count = parseInt(localStorage.getItem('tg_registros_sem_export') || '0') + 1;
+  localStorage.setItem('tg_registros_sem_export', count);
+  verificarAvisoBackup();
+}
+
+const LIMITE_BACKUP = 10; // avisar a cada 10 registros sem exportar
+
+function verificarAvisoBackup() {
+  const count = parseInt(localStorage.getItem('tg_registros_sem_export') || '0');
+  const aviso = document.getElementById('aviso-backup');
+  const span  = document.getElementById('backup-count');
+  if (!aviso) return;
+  if (count >= LIMITE_BACKUP) {
+    if (span) span.textContent = count;
+    aviso.style.display = 'block';
+  }
+}
+
+function fecharBackup() {
+  document.getElementById('aviso-backup').style.display = 'none';
 }
 
 </script>
